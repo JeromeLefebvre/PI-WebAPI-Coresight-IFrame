@@ -1,0 +1,70 @@
+<!---------------------------------------------------------------------------
+   Copyright 2016 OSIsoft, LLC.
+   Licensed under the Apache License, Version 2.0 (the "License");
+   you may not use this file except in compliance with the License.
+   You may obtain a copy of the License at
+       http://www.apache.org/licenses/LICENSE-2.0
+   Unless required by applicable law or agreed to in writing, software
+   distributed under the License is distributed on an "AS IS" BASIS,
+   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+   See the License for the specific language governing permissions and
+   limitations under the License.
+ --------------------------------------------------------------------------->
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AF Hierarchy Viewer</title>
+  <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.2/jquery.min.js"></script>
+  <script type="text/javascript">
+    var childrenMap = {
+      PISystems: ['AssetServers'],
+      AssetServers: ['Databases'],
+      Databases: ['Elements'],
+      Elements: ['Elements', 'Attributes'],
+      Attributes: ['Attributes']
+    };
+
+    function node(name, type, links, parentDiv) {
+      this.type = type;
+      this.links = links;
+      this.flipper = $('<span class="flipper">+</span>').click(flip.bind(this, this));
+      parentDiv.append(this.flipper).append('<span class="' + type + '"> ' + name + '</span><br />');
+      this.div = $('<div></div>').hide().appendTo(parentDiv);
+    }
+
+    function loadChildren(n) {
+      n.loaded = true;
+      childrenMap[n.type].forEach(function(childCollection) {
+        $.get(n.links[childCollection], function(collection) {
+          n[childCollection] = collection.Items.map(function (item) {
+            return new node(item.Name, childCollection, item.Links, n.div);
+          });
+        });
+      });
+    }
+
+    function flip(n) {
+      if (!n.loaded) { loadChildren(n); }
+      n.flipper.html(n.flipper.html() == '+' ? '-' : '+');
+      n.div.toggle();
+    }
+
+    $(function() {
+      root = new node('PI Systems', 'PISystems',
+        { AssetServers: 'https://localhost/piwebapi/assetservers' }, $("#root"));
+    });
+  </script>
+  <style type="text/css">
+    div {
+      left: 10px;
+      position: relative;
+    }
+    .flipper {
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+</body>
+</html>
